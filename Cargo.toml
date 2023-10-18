@@ -1,0 +1,11 @@
+[package]
+name = "unsafe_engline"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+gl = "0.14.0"
+glfw = "0.53.0"
+engine_math = { path = "C:/.personal_projects/rust_projects/engine_math/" }
