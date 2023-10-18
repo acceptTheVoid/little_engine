@@ -19,11 +19,20 @@ fn main() {
     gl::load_with(|s| window.get_proc_address(s) as *const _);
 
     // Генерируем буферы
-    let vertices: [GLfloat; 9] = [-0.5, -0.5, 0., 0.5, -0.5, 0., 0.5, 0.5, 0.];
+    let vertices: [GLfloat; 9] = [
+        -0.5, -0.5, 0., 
+        0.5, -0.5, 0., 
+        0., 0.5, 0.
+    ];
     let mut vbo: u32 = 0;
 
     unsafe {
         gl::GenBuffers(1, &mut vbo);
+
+        let mut vao = 0;
+        gl::GenVertexArrays(1, &mut vao);
+        gl::BindVertexArray(vao);
+
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
         gl::BufferData(
             gl::ARRAY_BUFFER,
@@ -123,6 +132,7 @@ void main()
         unsafe {
             gl::ClearColor(0.5, 0.1, 0.2, 1.);
             gl::Clear(gl::COLOR_BUFFER_BIT);
+            gl::DrawArrays(gl::TRIANGLES, 0, 3);
         }
 
         for (_, event) in glfw::flush_messages(&events) {
