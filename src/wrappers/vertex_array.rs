@@ -26,7 +26,7 @@ impl VertexArray {
     }
 
     pub fn upload_data<T, U>(&mut self, vertex_data: &[T], indices_data: &[U]) {
-        self.associate_vertices = vertex_data.len() as _;
+        self.associate_vertices = indices_data.len() as _;
         self.bind_vertex_buffer();
         self.vertex_bo.upload_data(vertex_data);
         self.bind_index_buffer();
