@@ -24,28 +24,16 @@ impl BufferObject {
     }
 
     pub fn vertex_buffer_object() -> Self {
-        let mut id = 0;
-        unsafe {
-            gl::GenBuffers(1, &mut id);
-        }
-
-        Self {
-            id,
-            bo_type: BufferObjectType::ArrayBuffer,
-            draw_type: DrawType::StaticDraw,
-        }
+        Self::new(BufferObjectType::ArrayBuffer, DrawType::StaticDraw)
     }
 
     pub fn element_buffer_object() -> Self {
-        let mut id = 0;
-        unsafe {
-            gl::GenBuffers(1, &mut id);
-        }
+        Self::new(BufferObjectType::ElementArrayBuffer, DrawType::StaticDraw)
+    }
 
-        Self {
-            id,
-            bo_type: BufferObjectType::ElementArrayBuffer,
-            draw_type: DrawType::StaticDraw,
+    pub fn bind(&self) {
+        unsafe {
+            gl::BindBuffer(self.bo_type.into(), self.id);
         }
     }
 

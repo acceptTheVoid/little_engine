@@ -1,6 +1,6 @@
 use std::{ffi::CString, fmt::Display, fs, io, mem, path::Path, ptr};
 
-use engine_math::Vec4;
+use engine_math::Matrix4;
 use gl::types::GLint;
 
 use crate::engine::UnsafeEngine;
@@ -11,13 +11,13 @@ use super::{
 };
 
 #[derive(Debug, Clone)]
-pub struct ShaderSource {
+pub struct ShaderSource<'a> {
     vertex_shader: String,
     fragment_shader: String,
-    meshes: Vec<Mesh>,
+    meshes: Vec<Mesh<'a>>,
 }
 
-impl ShaderSource {
+impl<'a> ShaderSource<'a> {
     #[allow(unused)]
     pub fn from_strings(vertex_shader: String, fragment_shader: String) -> Self {
         Self {
@@ -41,12 +41,12 @@ impl ShaderSource {
         })
     }
 
-    pub fn add_mesh(mut self, mesh: Mesh) -> Self {
+    pub fn add_mesh(mut self, mesh: Mesh<'a>) -> Self {
         self.meshes.push(mesh);
         self
     }
 
-    pub fn compile(self, e: &UnsafeEngine) -> Shader {
+    pub fn compile(self, _: &UnsafeEngine) -> Shader {
         unsafe {
             let vertex_shader = gl::CreateShader(gl::VERTEX_SHADER);
             let vertex_shader_source = CString::new(self.vertex_shader.as_bytes()).unwrap();
@@ -92,14 +92,18 @@ impl ShaderSource {
             gl::DeleteShader(vertex_shader);
             gl::DeleteShader(fragment_shader);
 
-            Shader {
+            let mut shader = Shader {
                 shader: shader_program,
-                meshes: self
-                    .meshes
-                    .into_iter()
-                    .map(|m| m.create_static(e))
-                    .collect(),
-            }
+                meshes: vec![],
+            };
+
+            shader.meshes = self
+                .meshes
+                .into_iter()
+                .map(|m| m.create_static(&shader))
+                .collect();
+
+            shader
         }
     }
 }
@@ -125,10 +129,15 @@ impl Shader {
     pub fn set_uniform(&self, name: &str, uniform: Uniform) {
         unsafe {
             let name = CString::new(name).unwrap();
+            self.use_program();
             let location = gl::GetUniformLocation(self.shader, name.as_ptr());
             match uniform {
-                Uniform::Vec4(v) => gl::Uniform4f(location, v.x, v.y, v.z, v.w),
+                Uniform::Vector4(v) => gl::Uniform4f(location, v.x, v.y, v.z, v.w),
+                Uniform::Matrix4(m) => {
+                    gl::UniformMatrix4fv(location, 1, gl::FALSE, &m as *const Matrix4 as *const f32)
+                }
                 Uniform::Float(f) => gl::Uniform1f(location, f),
+                Uniform::Int(i) => gl::Uniform1i(location, i),
             };
         }
     }

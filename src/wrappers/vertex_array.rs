@@ -27,9 +27,9 @@ impl VertexArray {
 
     pub fn upload_data<T, U>(&mut self, vertex_data: &[T], indices_data: &[U]) {
         self.associate_vertices = indices_data.len() as _;
-        self.bind_vertex_buffer();
+        self.vertex_bo.bind();
         self.vertex_bo.upload_data(vertex_data);
-        self.bind_index_buffer();
+        self.indices_bo.bind();
         self.indices_bo.upload_data(indices_data);
     }
 
@@ -62,18 +62,6 @@ impl VertexArray {
     pub fn bind(&self) {
         unsafe {
             gl::BindVertexArray(self.id);
-        }
-    }
-
-    fn bind_vertex_buffer(&self) {
-        unsafe {
-            gl::BindBuffer(self.vertex_bo.bo_type.into(), self.vertex_bo.id);
-        }
-    }
-
-    fn bind_index_buffer(&self) {
-        unsafe {
-            gl::BindBuffer(self.indices_bo.bo_type.into(), self.indices_bo.id);
         }
     }
 }

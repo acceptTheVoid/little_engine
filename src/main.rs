@@ -1,9 +1,10 @@
 use engine::UnsafeEngine;
-use engine_math::{Vec3, Vec4};
-use glfw::{ffi::glfwGetTime, Action, Key};
+use engine_math::{Vector2, Vector3, Vector4};
 use wrappers::{
     mesh::{Mesh, Vertex},
-    shader::ShaderSource, types::Uniform,
+    shader::ShaderSource,
+    textures::Texture2D,
+    types::Uniform,
 };
 
 mod engine;
@@ -12,69 +13,54 @@ mod wrappers;
 fn main() {
     let vertices = vec![
         Vertex {
-            pos: Vec3::new(-0.5, -0.5, 0.),
-            col: Vec3::new(1., 0., 0.),
+            pos: Vector3::new(0.5, 0.5, 0.),
+            col: Vector3::new(1., 0., 0.),
+            tex: Vector2::new(1., 1.),
         },
         Vertex {
-            pos: Vec3::new(0.5, -0.5, 0.),
-            col: Vec3::new(0., 1., 0.),
+            pos: Vector3::new(0.5, -0.5, 0.),
+            col: Vector3::new(0., 1., 0.),
+            tex: Vector2::new(1., 0.),
         },
         Vertex {
-            pos: Vec3::new(0., 0.5, 0.),
-            col: Vec3::new(0., 0., 1.),
+            pos: Vector3::new(-0.5, -0.5, 0.),
+            col: Vector3::new(0., 0., 1.),
+            tex: Vector2::new(0., 0.),
+        },
+        Vertex {
+            pos: Vector3::new(-0.5, 0.5, 0.),
+            col: Vector3::new(1., 0., 0.),
+            tex: Vector2::new(0., 1.),
         },
     ];
-    let indices = vec![0, 1, 2];
-    let mesh = Mesh::new(vertices, indices);
-
-    // let vertices = vec![
-    //     Vertex {
-    //         pos: Vec3::new(-0.75, -0.75, 0.),
-    //     },
-    //     Vertex {
-    //         pos: Vec3::new(-0.8, -0.3, 0.),
-    //     },
-    //     Vertex {
-    //         pos: Vec3::new(-0.6, -0.5, 0.),
-    //     },
-    // ];
-    // let indices = vec![0, 1, 2];
-    // let mesh_boga = Mesh::new(vertices, indices);
+    let indices = vec![0, 1, 3, 1, 2, 3];
+    let mesh = Mesh::new(
+        vertices,
+        indices,
+        vec![
+            Texture2D::load("textures/container.jpg", "texture1"),
+            Texture2D::load("textures/crack.png", "texture2"),
+        ],
+    );
 
     let shader =
         ShaderSource::from_files("shaders/vertex_shader.glsl", "shaders/fragment_shader.glsl")
             .unwrap()
             .add_mesh(mesh);
 
-    // let shader_2 = ShaderSource::from_files(
-    //     "shaders/vertex_shader.glsl",
-    //     "shaders/fragment_shader_2.glsl",
-    // )
-    // .unwrap()
-    // .add_mesh(mesh_boga);
+    let mut engine = UnsafeEngine::create().add_shader(shader).build();
 
-    let mut engine = UnsafeEngine::create()
-        .add_shader(shader)
-        // .add_shader(shader_2)
-        .add_event_handler(handle_window_event)
-        .build();
+    engine.set_background_color(Vector4::new(0., 0.1, 0.2, 1.));
 
-    engine.set_background_color(Vec4::new(0., 0.1, 0.2, 1.));
-
-    engine.game_loop(|e| {
-        e.clear_background();
-        e.draw_all();
+    let mut time = 0.;
+    engine.game_loop(|engine, _| {
+        engine.clear_background();
+        time += 0.0001;
+        let trans = engine_math::matrices::transform_matrix::rotation_matrix_in_homogeneous_3d_Oz(time);
+        engine
+            .access_shader(0)
+            .unwrap()
+            .set_uniform("transform", Uniform::Matrix4(trans));
+        engine.draw_all();
     });
-}
-
-fn handle_window_event(window: &mut glfw::Window, event: glfw::WindowEvent) {
-    match event {
-        glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => window.set_should_close(true),
-        // glfw::WindowEvent::Key(Key::W, _, Action::Press, _) => (),
-        glfw::WindowEvent::FramebufferSize(width, height) => {
-            // Make sure the viewport matches the new window dimensions.
-            unsafe { gl::Viewport(0, 0, width, height) }
-        }
-        _ => {}
-    }
 }

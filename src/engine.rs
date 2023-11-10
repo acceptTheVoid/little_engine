@@ -1,41 +1,36 @@
 use std::sync::mpsc::Receiver;
 
-use engine_math::Vec4;
-use glfw::{Context, Glfw, Window, WindowEvent};
+use crate::wrappers::types::Vec4;
+use glfw::{Action, Context, Glfw, Key, Window, WindowEvent};
 
-use crate::wrappers::shader::{Shader, ShaderSource};
+use crate::wrappers::{
+    shader::{Shader, ShaderSource},
+    types::{EventType, InnerEvent},
+};
 
 pub struct UnsafeEngine {
     shaders: Vec<Shader>,
     window: Window,
     reciever: Receiver<(f64, WindowEvent)>,
     glfw: Glfw,
-    event_handler: Box<dyn FnMut(&mut Window, WindowEvent)>,
 }
 
-pub struct UnsafeEngineBuilder {
-    raw_shaders: Vec<ShaderSource>,
-    event_handler: Box<dyn FnMut(&mut Window, WindowEvent)>,
+pub struct UnsafeEngineBuilder<'a> {
+    raw_shaders: Vec<ShaderSource<'a>>,
 }
 
-impl UnsafeEngineBuilder {
-    pub fn add_shader(mut self, shader_source: ShaderSource) -> Self {
+impl<'a> UnsafeEngineBuilder<'a> {
+    pub fn add_shader(mut self, shader_source: ShaderSource<'a>) -> Self {
         self.raw_shaders.push(shader_source);
         self
     }
 
-    pub fn add_event_handler<F>(mut self, callback: F) -> Self
-    where
-        F: Fn(&mut Window, WindowEvent) + 'static,
-    {
-        self.event_handler = Box::new(callback);
-        self
-    }
-
     pub fn build(self) -> UnsafeEngine {
+        let UnsafeEngineBuilder { raw_shaders } = self;
+
         let mut glfw = glfw::init(glfw::fail_on_errors).unwrap();
 
-        let (mut window, events) = glfw
+        let (mut window, reciever) = glfw
             .create_window(1280, 720, "Я илюша обухов", glfw::WindowMode::Windowed)
             .expect("Failed to create GLFW window.");
 
@@ -44,20 +39,19 @@ impl UnsafeEngineBuilder {
 
         Self::gl_init(&mut window);
 
-        let mut e = UnsafeEngine {
+        let mut engine = UnsafeEngine {
             shaders: vec![],
             window,
-            reciever: events,
+            reciever,
             glfw,
-            event_handler: self.event_handler,
         };
-        e.shaders = self
-            .raw_shaders
+
+        engine.shaders = raw_shaders
             .into_iter()
-            .map(|s| s.compile(&e))
+            .map(|s| s.compile(&engine))
             .collect();
 
-        e
+        engine
     }
 
     fn gl_init(window: &mut Window) {
@@ -65,21 +59,20 @@ impl UnsafeEngineBuilder {
     }
 }
 
-impl UnsafeEngine {
-    pub fn create() -> UnsafeEngineBuilder {
+impl<'a> UnsafeEngine {
+    pub fn create() -> UnsafeEngineBuilder<'a> {
         UnsafeEngineBuilder {
             raw_shaders: vec![],
-            event_handler: Box::new(|_, _| {}),
         }
     }
 
-    pub fn set_background_color(&mut self, color: Vec4) {
+    pub fn set_background_color(&self, color: Vec4) {
         unsafe {
             gl::ClearColor(color.x, color.y, color.z, color.w);
         }
     }
 
-    pub fn clear_background(&mut self) {
+    pub fn clear_background(&self) {
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT);
         }
@@ -93,11 +86,19 @@ impl UnsafeEngine {
 
     pub fn game_loop<F>(&mut self, mut closure: F)
     where
-        F: FnMut(&mut UnsafeEngine),
+        F: FnMut(&UnsafeEngine, EventType),
     {
         while !self.window.should_close() {
-            self.handle_event();
-            closure(self);
+            for e in self.handle_events() {
+                match e {
+                    InnerEvent::IngameEvent(e) => closure(self, e),
+                    InnerEvent::Close => self.window.set_should_close(true),
+                    InnerEvent::Resize(w, h) => unsafe { gl::Viewport(0, 0, w, h) },
+                    _ => (),
+                }
+            }
+
+            closure(self, EventType::None);
             self.window.swap_buffers();
             self.glfw.poll_events();
         }
@@ -107,13 +108,21 @@ impl UnsafeEngine {
         self.shaders.get(idx)
     }
 
-    pub fn access_shader_mut(&mut self, idx: usize) -> Option<&mut Shader> {
-        self.shaders.get_mut(idx)
+    fn handle_events(&mut self) -> Vec<InnerEvent> {
+        glfw::flush_messages(&self.reciever)
+            .into_iter()
+            .map(|(_, event)| handle_window_event(event))
+            .collect()
     }
+}
 
-    fn handle_event(&mut self) {
-        for (_, event) in glfw::flush_messages(&self.reciever) {
-            (self.event_handler)(&mut self.window, event);
+fn handle_window_event(event: glfw::WindowEvent) -> InnerEvent {
+    match event {
+        glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => InnerEvent::Close,
+        glfw::WindowEvent::Key(key, _, Action::Press, _) => {
+            InnerEvent::IngameEvent(EventType::KeyPress(key))
         }
+        glfw::WindowEvent::FramebufferSize(width, height) => InnerEvent::Resize(width, height),
+        _ => InnerEvent::EventsClear,
     }
 }

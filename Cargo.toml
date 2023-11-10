@@ -6,7 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+engine-math = { git = "https://github.com/kopytlyanka/engine-math.git" }
 gl = "0.14.0"
 glfw = "0.53.0"
-engine_math = { path = "C:/.personal_projects/rust_projects/engine_math/" }
 image = "0.24.7"
+imgui-opengl-renderer = "0.12.1"
