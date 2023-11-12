@@ -30,7 +30,7 @@ fn main() {
         Vertex {
             pos: Vector3::new(-0.5, 0.5, 0.),
             col: Vector3::new(1., 0., 0.),
-            tex: Vector2::new(0., 1.),
+            tex: Vector2::new(0., 1.),  
         },
     ];
     let indices = vec![0, 1, 3, 1, 2, 3];
