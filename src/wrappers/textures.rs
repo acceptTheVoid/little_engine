@@ -22,7 +22,7 @@ impl Texture2D {
         let img = image::open(file_name).unwrap();
         BuilderTexture2D {
             img,
-            name,
+            name: name.into(),
             parameters: TextureParameters::default(),
         }
     }
@@ -78,13 +78,13 @@ impl TextureParameters {
 }
 
 #[derive(Debug, Clone)]
-pub struct BuilderTexture2D<'a> {
+pub struct BuilderTexture2D {
     img: DynamicImage,
     parameters: TextureParameters,
-    name: &'a str,
+    name: String,
 }
 
-impl<'a> BuilderTexture2D<'a> {
+impl BuilderTexture2D {
     pub fn flipv(mut self) -> Self {
         self.img = self.img.flipv();
         self
@@ -100,7 +100,7 @@ impl<'a> BuilderTexture2D<'a> {
         self
     }
 
-    pub fn process(self, shader: &Shader, idx: usize) -> Texture2D {
+    pub fn process(self, shader: &Shader) -> Texture2D {
         let Self {
             img,
             name,
@@ -154,7 +154,7 @@ impl<'a> BuilderTexture2D<'a> {
             );
             gl::GenerateMipmap(gl::TEXTURE_2D);
 
-            shader.set_uniform(name, Uniform::Int(idx as _));
+            shader.set_uniform(&name, Uniform::Int(0));
 
             Texture2D { id }
         }

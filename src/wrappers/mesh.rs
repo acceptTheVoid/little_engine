@@ -1,7 +1,5 @@
 use std::mem::size_of;
 
-use crate::engine::UnsafeEngine;
-
 use super::{
     attribute_pointer::{AttributePointers, Attributes},
     buffer_object::BufferObject,
@@ -12,58 +10,34 @@ use super::{
 };
 
 pub trait Draw {
-    fn draw(&self, _: &UnsafeEngine);
+    fn draw(&self);
 }
 
 #[derive(Debug, Clone)]
 pub struct BoundStaticMesh {
     vao: VertexArray,
-    texture: Vec<Texture2D>,
 }
 
 impl Draw for BoundStaticMesh {
-    fn draw(&self, _: &UnsafeEngine) {
-        self.texture
-            .iter()
-            .enumerate()
-            .for_each(|(idx, t)| t.bind(idx.into()));
+    fn draw(&self) {
         self.vao.bind();
         self.vao.draw();
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct Mesh<'a> {
+pub struct Mesh {
     vertices: Vec<Vertex>,
     indices: Vec<Index>,
-    texture: Vec<BuilderTexture2D<'a>>,
 }
 
-impl<'a> Mesh<'a> {
-    pub fn new(
-        vertices: Vec<Vertex>,
-        indices: Vec<Index>,
-        texture: Vec<BuilderTexture2D<'a>>,
-    ) -> Self {
-        Self {
-            vertices,
-            indices,
-            texture,
-        }
+impl Mesh {
+    pub fn new(vertices: Vec<Vertex>, indices: Vec<Index>) -> Self {
+        Self { vertices, indices }
     }
 
     pub fn create_static(self, shader: &Shader) -> BoundStaticMesh {
-        let Mesh {
-            vertices,
-            indices,
-            texture,
-        } = self;
-
-        let texture = texture
-            .into_iter()
-            .enumerate()
-            .map(|(idx, t)| t.process(shader, idx))
-            .collect();
+        let Mesh { vertices, indices } = self;
 
         let vbo = BufferObject::vertex_buffer_object();
         let ebo = BufferObject::element_buffer_object();
@@ -75,7 +49,7 @@ impl<'a> Mesh<'a> {
             .iter()
             .for_each(|v| vao.vertex_attrib_pointer(*v));
 
-        BoundStaticMesh { vao, texture }
+        BoundStaticMesh { vao }
     }
 }
 

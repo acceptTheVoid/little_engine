@@ -3,27 +3,28 @@ use std::{ffi::CString, fmt::Display, fs, io, mem, path::Path, ptr};
 use engine_math::Matrix4;
 use gl::types::GLint;
 
-use crate::engine::UnsafeEngine;
+use crate::{
+    engine::{Meshes, Textures},
+    object::Object,
+};
 
 use super::{
-    mesh::{BoundStaticMesh, Draw, Mesh},
+    gl::GL,
     types::{ProgramStatus, ShaderStatus, ShaderType, Uniform},
 };
 
 #[derive(Debug, Clone)]
-pub struct ShaderSource<'a> {
+pub struct ShaderSource {
     vertex_shader: String,
     fragment_shader: String,
-    meshes: Vec<Mesh<'a>>,
 }
 
-impl<'a> ShaderSource<'a> {
+impl ShaderSource {
     #[allow(unused)]
     pub fn from_strings(vertex_shader: String, fragment_shader: String) -> Self {
         Self {
             vertex_shader,
             fragment_shader,
-            meshes: vec![],
         }
     }
 
@@ -37,16 +38,10 @@ impl<'a> ShaderSource<'a> {
         Ok(Self {
             vertex_shader,
             fragment_shader,
-            meshes: vec![],
         })
     }
 
-    pub fn add_mesh(mut self, mesh: Mesh<'a>) -> Self {
-        self.meshes.push(mesh);
-        self
-    }
-
-    pub fn compile(self, _: &UnsafeEngine) -> Shader {
+    pub fn compile(self, _: &GL) -> Shader {
         unsafe {
             let vertex_shader = gl::CreateShader(gl::VERTEX_SHADER);
             let vertex_shader_source = CString::new(self.vertex_shader.as_bytes()).unwrap();
@@ -92,18 +87,9 @@ impl<'a> ShaderSource<'a> {
             gl::DeleteShader(vertex_shader);
             gl::DeleteShader(fragment_shader);
 
-            let mut shader = Shader {
+            Shader {
                 shader: shader_program,
-                meshes: vec![],
-            };
-
-            shader.meshes = self
-                .meshes
-                .into_iter()
-                .map(|m| m.create_static(&shader))
-                .collect();
-
-            shader
+            }
         }
     }
 }
@@ -111,15 +97,12 @@ impl<'a> ShaderSource<'a> {
 #[derive(Debug)]
 pub struct Shader {
     shader: u32,
-    meshes: Vec<BoundStaticMesh>,
 }
 
 impl Shader {
-    pub fn draw_associated(&self, e: &UnsafeEngine) {
+    pub fn draw_associated(&self, objects: &[Object], meshes: &Meshes, textures: &Textures) {
         self.use_program();
-        for m in &self.meshes {
-            m.draw(e);
-        }
+        objects.iter().for_each(|obj| obj.draw(meshes, textures));
     }
 
     fn use_program(&self) {
@@ -127,6 +110,8 @@ impl Shader {
     }
 
     pub fn set_uniform(&self, name: &str, uniform: Uniform) {
+        use engine_math::Matrix;
+
         unsafe {
             let name = CString::new(name).unwrap();
             self.use_program();
@@ -134,6 +119,8 @@ impl Shader {
             match uniform {
                 Uniform::Vector4(v) => gl::Uniform4f(location, v.x, v.y, v.z, v.w),
                 Uniform::Matrix4(m) => {
+                    // let m = dbg!(m.transpose());
+                    let m = m.transpose();
                     gl::UniformMatrix4fv(location, 1, gl::FALSE, &m as *const Matrix4 as *const f32)
                 }
                 Uniform::Float(f) => gl::Uniform1f(location, f),

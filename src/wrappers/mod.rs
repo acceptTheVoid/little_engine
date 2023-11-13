@@ -1,5 +1,6 @@
 pub mod attribute_pointer;
 pub mod buffer_object;
+pub mod gl;
 pub mod mesh;
 pub mod shader;
 pub mod textures;
