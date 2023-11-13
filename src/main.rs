@@ -5,12 +5,13 @@ use engine_math::{
     transform::homogeneous::{perspective3, rotate3x, rotate3y, rotate3z, translate3, translate3z},
     Matrix4, Vector, Vector2, Vector3, Vector4,
 };
+use glfw::Key;
 use object::Object;
 use wrappers::{
     mesh::{Mesh, Vertex},
     shader::ShaderSource,
     textures::Texture2D,
-    types::Uniform,
+    types::{Uniform, EventType},
 };
 
 mod engine;
@@ -106,18 +107,55 @@ fn main() {
 
     let projection = perspective3(100., 0.1, 800. / 600., PI / 4.);
 
-    let mut time: f32 = 0.;
-    let r = 10.;
-    engine.game_loop(|engine, _| {
-        time += 0.001;
+    let speed = 0.05;
+    let mut camera_pos = Vector3::new(0., 0., 3.);
+    let camera_front = Vector3::new(0., 0., -1.);
+    let camera_up = Vector3::new(0., 1., 0.);
+    let mut last_frame = std::time::SystemTime::now();
 
-        let cam_x = time.sin() * r;
-        let cam_z = time.cos() * r;
-        let cam_y = time;
+    let mut holding_w = false;
+    let mut holding_s = false;
+    let mut holding_a = false;
+    let mut holding_d = false;
+
+    engine.game_loop(|engine, e| {
+        // let time = std::time::SystemTime::now();
+        let delta_time = last_frame.elapsed().unwrap();
+        let speed = 2.5 * delta_time.as_secs_f32();
+        last_frame = std::time::SystemTime::now();
+
+        match e {
+            EventType::KeyPressed(Key::W) => holding_w = true,
+            EventType::KeyReleased(Key::W) => holding_w = false,
+            EventType::KeyPressed(Key::S) => holding_s = true,
+            EventType::KeyReleased(Key::S) => holding_s = false,
+            EventType::KeyPressed(Key::A) => holding_a = true,
+            EventType::KeyReleased(Key::A) => holding_a = false,
+            EventType::KeyPressed(Key::D) => holding_d = true,
+            EventType::KeyReleased(Key::D) => holding_d = false,
+            _ => (),
+        }
+
+        if holding_w {
+            camera_pos += speed * camera_front
+        }
+
+        if holding_s {
+            camera_pos -= speed * camera_front
+        }
+
+        if holding_a {
+            camera_pos -= camera_front.cross(camera_up).normalize() * speed
+        }
+
+        if holding_d {
+            camera_pos += camera_front.cross(camera_up).normalize() * speed
+        }
+
         let view = look_at(
-            Vector3::new(cam_x, cam_y, cam_z),
-            Vector3::new(0., -1., 0.),
-            Vector3::new(0., 1., 0.),
+            camera_pos,
+            camera_pos + camera_front,
+            camera_up,
         );
 
         engine.clear_background();

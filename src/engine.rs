@@ -160,9 +160,8 @@ impl UnsafeEngine {
 fn handle_window_event(event: glfw::WindowEvent) -> InnerEvent {
     match event {
         glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => InnerEvent::Close,
-        glfw::WindowEvent::Key(key, _, Action::Press, _) => {
-            InnerEvent::IngameEvent(EventType::KeyPress(key))
-        }
+        glfw::WindowEvent::Key(key, _, Action::Press, _) => InnerEvent::IngameEvent(EventType::KeyPressed(key)),
+        glfw::WindowEvent::Key(key, _, Action::Release, _) => InnerEvent::IngameEvent(EventType::KeyReleased(key)),
         glfw::WindowEvent::FramebufferSize(width, height) => InnerEvent::Resize(width, height),
         _ => InnerEvent::EventsClear,
     }

@@ -131,7 +131,7 @@ checksum = "a26ae43d7bcc3b814de94796a5e736d4029efb0ee900c12e2d54c993ad1a1e07"
 [[package]]
 name = "engine-math"
 version = "0.1.0"
-source = "git+https://github.com/kopytlyanka/engine-math.git#cba1cf317905e69754ac224309b0201d255c9200"
+source = "git+https://github.com/acceptTheVoid/engine-math.git#62a91fdab1066939535d09580afc37ddd6d4ac64"
 
 [[package]]
 name = "exr"

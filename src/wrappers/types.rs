@@ -12,7 +12,8 @@ pub type Index = GLuint;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum EventType {
-    KeyPress(glfw::Key),
+    KeyPressed(glfw::Key),
+    KeyReleased(glfw::Key),
     None,
 }
 
