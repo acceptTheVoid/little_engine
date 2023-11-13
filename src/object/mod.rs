@@ -17,7 +17,13 @@ pub struct Object {
 
 impl Object {
     pub fn new() -> ObjectConstructor {
-        ObjectConstructor { transform: Transform { enabled: true, ..Default::default() }, ..Default::default() }
+        ObjectConstructor {
+            transform: Transform {
+                enabled: true,
+                ..Default::default()
+            },
+            ..Default::default()
+        }
     }
 
     pub fn is_enabled(&self) -> bool {
