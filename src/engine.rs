@@ -1,4 +1,9 @@
-use std::{collections::HashMap, sync::mpsc::Receiver};
+use std::{
+    cell::{Ref, RefCell},
+    collections::HashMap,
+    sync::mpsc::Receiver,
+    time::{Duration, SystemTime},
+};
 
 use crate::{
     object::{Object, ObjectConstructor},
@@ -21,48 +26,15 @@ pub type Textures = HashMap<String, Texture2D>;
 
 pub struct UnsafeEngine {
     shader: Shader,
-    objects: Vec<Object>,
+    objects: RefCell<Vec<Object>>,
     meshes: Meshes,
     textures: Textures,
-    gl: GL,
+    _gl: GL,
     window: Window,
     reciever: Receiver<(f64, WindowEvent)>,
     glfw: Glfw,
+    time_diff: Duration,
 }
-
-// pub struct UnsafeEngineBuilder {
-//     raw_shaders: ShaderSource,
-// }
-
-// impl UnsafeEngineBuilder {
-//     pub fn build(self) -> UnsafeEngine {
-//         let UnsafeEngineBuilder { raw_shaders } = self;
-
-//         let mut glfw = glfw::init(glfw::fail_on_errors).unwrap();
-
-//         let (mut window, reciever) = glfw
-//             .create_window(1280, 720, "Я илюша обухов", glfw::WindowMode::Windowed)
-//             .expect("Failed to create GLFW window.");
-
-//         window.set_key_polling(true);
-//         window.make_current();
-
-//         Self::gl_init(&mut window);
-
-//         let mut engine = UnsafeEngine {
-//             shader: ,
-//             window,
-//             reciever,
-//             glfw,
-//         };
-
-//         engine
-//     }
-
-//     fn gl_init(window: &mut Window) {
-//         gl::load_with(|s| window.get_proc_address(s) as *const _);
-//     }
-// }
 
 impl UnsafeEngine {
     pub fn new(shader: ShaderSource) -> UnsafeEngine {
@@ -73,32 +45,35 @@ impl UnsafeEngine {
             .expect("Failed to create GLFW window.");
 
         window.set_key_polling(true);
+        window.set_cursor_pos_polling(true);
         window.make_current();
+        // window.set_cursor_mode(CursorMode::Disabled);
 
-        let gl = GL::init(&mut window);
+        let _gl = GL::init(&mut window);
 
         unsafe {
             gl::Enable(gl::DEPTH_TEST);
         }
 
         Self {
-            shader: shader.compile(&gl),
-            gl,
+            shader: shader.compile(&_gl),
+            _gl,
             window,
             reciever,
             glfw,
-            objects: vec![],
+            objects: RefCell::new(vec![]),
             meshes: HashMap::new(),
             textures: HashMap::new(),
+            time_diff: Duration::from_secs(0),
         }
     }
 
-    pub fn add_mesh<N: Into<String>>(&mut self, name: N, mesh: Mesh) {
+    pub fn add_mesh<Name: Into<String>>(&mut self, name: Name, mesh: Mesh) {
         self.meshes
             .insert(name.into(), mesh.create_static(&self.shader));
     }
 
-    pub fn add_texture<N: Into<String>>(&mut self, name: N, texture: BuilderTexture2D) {
+    pub fn add_texture<Name: Into<String>>(&mut self, name: Name, texture: BuilderTexture2D) {
         self.textures
             .insert(name.into(), texture.process(&self.shader));
     }
@@ -115,21 +90,35 @@ impl UnsafeEngine {
         }
     }
 
-    pub fn add_object(&mut self, obj: ObjectConstructor) {
+    pub fn add_object(&self, obj: ObjectConstructor) {
         let obj = obj.construct(&self.shader);
-        self.objects.push(obj)
+        self.objects.borrow_mut().push(obj)
+    }
+
+    pub fn get_objects(&self) -> Ref<'_, Vec<Object>> {
+        self.objects.borrow()
+    }
+
+    pub fn change_object(&self, id: usize, object: ObjectConstructor) {
+        self.objects.borrow_mut()[id] = object.construct(&self.shader);
     }
 
     pub fn draw_all(&self) {
         self.shader
-            .draw_associated(&self.objects, &self.meshes, &self.textures);
+            .draw_associated(&self.objects.borrow(), &self.meshes, &self.textures);
+    }
+
+    pub fn delta_time(&self) -> f32 {
+        self.time_diff.as_secs_f32()
     }
 
     pub fn game_loop<F>(&mut self, mut closure: F)
     where
-        F: FnMut(&UnsafeEngine, EventType),
+        F: FnMut(&mut UnsafeEngine, EventType),
     {
         while !self.window.should_close() {
+            let time = SystemTime::now();
+
             for e in self.handle_events() {
                 match e {
                     InnerEvent::IngameEvent(e) => closure(self, e),
@@ -142,6 +131,9 @@ impl UnsafeEngine {
             closure(self, EventType::None);
             self.window.swap_buffers();
             self.glfw.poll_events();
+
+            let delta = time.elapsed().unwrap();
+            self.time_diff = delta;
         }
     }
 
@@ -160,8 +152,15 @@ impl UnsafeEngine {
 fn handle_window_event(event: glfw::WindowEvent) -> InnerEvent {
     match event {
         glfw::WindowEvent::Key(Key::Escape, _, Action::Press, _) => InnerEvent::Close,
-        glfw::WindowEvent::Key(key, _, Action::Press, _) => InnerEvent::IngameEvent(EventType::KeyPressed(key)),
-        glfw::WindowEvent::Key(key, _, Action::Release, _) => InnerEvent::IngameEvent(EventType::KeyReleased(key)),
+        glfw::WindowEvent::Key(key, _, Action::Press, _) => {
+            InnerEvent::IngameEvent(EventType::KeyPressed(key))
+        }
+        glfw::WindowEvent::Key(key, _, Action::Release, _) => {
+            InnerEvent::IngameEvent(EventType::KeyReleased(key))
+        }
+        glfw::WindowEvent::CursorPos(xpos, ypos) => {
+            InnerEvent::IngameEvent(EventType::CursorMoved(xpos, ypos))
+        }
         glfw::WindowEvent::FramebufferSize(width, height) => InnerEvent::Resize(width, height),
         _ => InnerEvent::EventsClear,
     }

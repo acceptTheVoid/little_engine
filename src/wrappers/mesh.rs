@@ -36,7 +36,7 @@ impl Mesh {
         Self { vertices, indices }
     }
 
-    pub fn create_static(self, shader: &Shader) -> BoundStaticMesh {
+    pub fn create_static(self, _: &Shader) -> BoundStaticMesh {
         let Mesh { vertices, indices } = self;
 
         let vbo = BufferObject::vertex_buffer_object();

@@ -14,6 +14,7 @@ pub type Index = GLuint;
 pub enum EventType {
     KeyPressed(glfw::Key),
     KeyReleased(glfw::Key),
+    CursorMoved(f64, f64),
     None,
 }
 

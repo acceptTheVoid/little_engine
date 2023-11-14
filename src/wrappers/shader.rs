@@ -1,11 +1,15 @@
-use std::{ffi::CString, fmt::Display, fs, io, mem, path::Path, ptr};
+use std::{f32::consts::PI, ffi::CString, fmt::Display, fs, io, mem, path::Path, ptr};
 
-use engine_math::Matrix4;
+use engine_math::{
+    transform::homogeneous::{lookat3, perspective3, rotate3, scale3, translate3},
+    Matrix4, Vector3,
+};
 use gl::types::GLint;
 
 use crate::{
     engine::{Meshes, Textures},
     object::Object,
+    wrappers::to_ptr,
 };
 
 use super::{
@@ -101,8 +105,38 @@ pub struct Shader {
 
 impl Shader {
     pub fn draw_associated(&self, objects: &[Object], meshes: &Meshes, textures: &Textures) {
+        let projection = perspective3(10000., 0.01, 800. / 600., PI / 4.);
+
         self.use_program();
-        objects.iter().for_each(|obj| obj.draw(meshes, textures));
+        self.set_uniform("projection", Uniform::Matrix4(projection));
+        objects
+            .iter()
+            .filter(|obj| obj.is_enabled())
+            .filter_map(|obj| {
+                if let Some(r) = obj.renderer() {
+                    Some((obj.transform(), r))
+                } else {
+                    None
+                }
+            })
+            .for_each(|(t, r)| {
+                let (mesh_name, texture_name) = r.request();
+                let mesh = meshes.get(mesh_name).unwrap();
+                let texture = texture_name.map(|n| textures.get(n).unwrap());
+
+                let Vector3 { x, y, z } = t.rotation;
+                let model = translate3(t.pos) * scale3(t.scale) * rotate3(x, y, z);
+                let view = lookat3(
+                    Vector3::new(0., 0., 3.),
+                    Vector3::from(0.),
+                    Vector3::new(0., 1., 0.),
+                );
+
+                self.set_uniform("model", Uniform::Matrix4(model));
+                self.set_uniform("view", Uniform::Matrix4(view));
+
+                r.draw(mesh, texture);
+            });
     }
 
     fn use_program(&self) {
@@ -121,7 +155,7 @@ impl Shader {
                 Uniform::Matrix4(m) => {
                     // let m = dbg!(m.transpose());
                     let m = m.transpose();
-                    gl::UniformMatrix4fv(location, 1, gl::FALSE, &m as *const Matrix4 as *const f32)
+                    gl::UniformMatrix4fv(location, 1, gl::FALSE, to_ptr(&m))
                 }
                 Uniform::Float(f) => gl::Uniform1f(location, f),
                 Uniform::Int(i) => gl::Uniform1i(location, i),

@@ -10,7 +10,7 @@ use self::components::{Components, Renderer, Transform};
 
 pub mod components;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Object {
     components: Components,
 }
@@ -26,25 +26,16 @@ impl Object {
         }
     }
 
-    pub fn is_enabled(&self) -> bool {
-        self.components.transform.enabled
+    pub fn transform(&self) -> &Transform {
+        &self.components.transform
     }
 
-    pub fn draw(
-        &self,
-        meshes: &HashMap<String, BoundStaticMesh>,
-        textures: &HashMap<String, Texture2D>,
-    ) {
-        if !self.is_enabled() {
-            return;
-        }
+    pub fn renderer(&self) -> Option<&Renderer> {
+        self.components.renderer.as_ref()
+    }
 
-        match &self.components.renderer {
-            Some(r) => {
-                r.draw(meshes, textures);
-            }
-            None => (),
-        }
+    pub fn is_enabled(&self) -> bool {
+        self.components.transform.enabled
     }
 }
 
@@ -89,6 +80,27 @@ impl ObjectConstructor {
                 transform,
                 renderer,
             },
+        }
+    }
+}
+
+impl From<Object> for ObjectConstructor {
+    fn from(value: Object) -> Self {
+        let req = value.renderer().map(|r| r.request());
+        if let Some((mesh_name, texture_name)) = req {
+            let mesh_name = Some(mesh_name.to_string());
+            let texture_name = texture_name.map(|s| s.to_string());
+            ObjectConstructor {
+                transform: value.transform().clone(),
+                mesh_name,
+                texture_name,
+            }
+        } else {
+            ObjectConstructor {
+                transform: value.transform().clone(),
+                mesh_name: None,
+                texture_name: None,
+            }
         }
     }
 }
