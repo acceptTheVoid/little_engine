@@ -39,8 +39,14 @@ fn main() {
         let ctx = engine.get_ctx();
 
         egui::SidePanel::left("glush").show(ctx, |ui| {
+            ui.with_layout(egui::Layout::top_down_justified(egui::Align::Center), |ui| {
+                engine.get_objects().iter().enumerate().for_each(|(idx, _)| {
+                    ui.label(format!("{idx}"));
+                });
+            });
+
             ui.with_layout(
-                egui::Layout::top_down_justified(egui::Align::Center),
+                egui::Layout::bottom_up(egui::Align::Center).with_cross_justify(true),
                 |ui| {
                     if ui.button("add obj").clicked() {
                         engine.command(Command::AddObject(
