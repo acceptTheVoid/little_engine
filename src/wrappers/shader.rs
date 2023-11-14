@@ -1,8 +1,7 @@
 use std::{f32::consts::PI, ffi::CString, fmt::Display, fs, io, mem, path::Path, ptr};
 
 use engine_math::{
-    transform::homogeneous::{lookat3, perspective3, rotate3, scale3, translate3},
-    Matrix4, Vector3,
+    transform::homogeneous::{lookat3, perspective3, rotate3, scale3, translate3}, Vector3,
 };
 use gl::types::GLint;
 

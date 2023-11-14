@@ -4,7 +4,6 @@ use super::{
     attribute_pointer::{AttributePointers, Attributes},
     buffer_object::BufferObject,
     shader::Shader,
-    textures::{BuilderTexture2D, Texture2D},
     types::{Index, Vec2, Vec3},
     vertex_array::VertexArray,
 };
@@ -57,7 +56,6 @@ impl Mesh {
 #[derive(Debug, Clone, Copy)]
 pub struct Vertex {
     pub pos: Vec3,
-    pub col: Vec3,
     pub tex: Vec2,
 }
 
@@ -72,16 +70,9 @@ impl Attributes for Vertex {
             },
             AttributePointers {
                 location: 1,
-                size: 3,
-                stride: size,
-                ptr: size_of::<Vec3>() as _,
-                ..AttributePointers::empty()
-            },
-            AttributePointers {
-                location: 2,
                 size: 2,
                 stride: size,
-                ptr: (size_of::<Vec3>() * 2) as _,
+                ptr: size_of::<Vec3>() as _,
                 ..AttributePointers::empty()
             },
         ]

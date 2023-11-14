@@ -46,6 +46,7 @@ impl UnsafeEngine {
 
         window.set_key_polling(true);
         window.set_cursor_pos_polling(true);
+        window.set_framebuffer_size_polling(true);
         window.make_current();
         // window.set_cursor_mode(CursorMode::Disabled);
 
@@ -114,7 +115,7 @@ impl UnsafeEngine {
 
     pub fn game_loop<F>(&mut self, mut closure: F)
     where
-        F: FnMut(&mut UnsafeEngine, EventType),
+        F: FnMut(&UnsafeEngine, EventType),
     {
         while !self.window.should_close() {
             let time = SystemTime::now();

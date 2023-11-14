@@ -1,10 +1,4 @@
-use std::collections::HashMap;
-
-use crate::wrappers::{
-    mesh::{BoundStaticMesh, Mesh},
-    shader::Shader,
-    textures::Texture2D,
-};
+use crate::wrappers::shader::Shader;
 
 use self::components::{Components, Renderer, Transform};
 

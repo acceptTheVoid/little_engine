@@ -1,60 +1,46 @@
-use std::{cell::RefCell, f32::consts::PI};
-
-use engine::UnsafeEngine;
+use unsafe_engine::engine::UnsafeEngine;
 use engine_math::{Vector2, Vector3, Vector4};
 use glfw::Key;
-use object::{components::Transform, Object, ObjectConstructor};
-use wrappers::{
+use unsafe_engine::object::{components::Transform, Object, ObjectConstructor};
+use unsafe_engine::wrappers::{
     mesh::{Mesh, Vertex},
     shader::ShaderSource,
     textures::Texture2D,
-    types::{EventType, InnerEvent},
+    types::EventType,
 };
-
-mod engine;
-mod object;
-mod wrappers;
 
 fn main() {
     let vertices = vec![
         Vertex {
             pos: Vector3::new(0.5, -0.5, -0.5),
-            col: Vector3::new(1., 0., 0.),
             tex: Vector2::new(1., 1.),
         },
         Vertex {
             pos: Vector3::new(0.5, -0.5, 0.5),
-            col: Vector3::new(0., 1., 0.),
             tex: Vector2::new(1., 0.),
         },
         Vertex {
             pos: Vector3::new(-0.5, -0.5, 0.5),
-            col: Vector3::new(0., 0., 1.),
             tex: Vector2::new(0., 0.),
         },
         Vertex {
             pos: Vector3::new(-0.5, -0.5, -0.5),
-            col: Vector3::new(1., 0., 0.),
             tex: Vector2::new(0., 1.),
         },
         Vertex {
             pos: Vector3::new(-0.5, 0.5, 0.5),
-            col: Vector3::new(0., 0., 1.),
             tex: Vector2::new(0., 0.),
         },
         Vertex {
             pos: Vector3::new(0.5, 0.5, 0.5),
-            col: Vector3::new(0., 1., 0.),
             tex: Vector2::new(1., 0.),
         },
         Vertex {
             pos: Vector3::new(0.5, 0.5, -0.5),
-            col: Vector3::new(1., 0., 0.),
             tex: Vector2::new(1., 1.),
         },
         Vertex {
             pos: Vector3::new(-0.5, 0.5, -0.5),
-            col: Vector3::new(1., 0., 0.),
             tex: Vector2::new(0., 1.),
         },
     ];
@@ -148,6 +134,4 @@ fn main() {
     });
 }
 
-fn radians(angle: f32) -> f32 {
-    PI * angle / 180.
-}
+

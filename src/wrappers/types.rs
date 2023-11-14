@@ -37,7 +37,6 @@ impl From<TextureUnit> for u32 {
         match value {
             TextureUnit::Texture0 => gl::TEXTURE0,
             TextureUnit::Texture1 => gl::TEXTURE1,
-            _ => todo!(),
         }
     }
 }
