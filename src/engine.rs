@@ -1,4 +1,5 @@
 use std::{
+    cell::RefCell,
     collections::HashMap,
     sync::mpsc::Receiver,
     time::{Duration, SystemTime},
@@ -28,7 +29,7 @@ pub type Textures = HashMap<String, Texture2D>;
 pub struct UnsafeEngine {
     shader: Shader,
     objects: Vec<Object>,
-    commands: Vec<Command>,
+    commands: RefCell<Vec<Command>>,
     meshes: Meshes,
     textures: Textures,
     _gl: GL,
@@ -74,7 +75,7 @@ impl UnsafeEngine {
             reciever,
             glfw,
             objects: vec![],
-            commands: vec![],
+            commands: RefCell::new(vec![]),
             meshes: HashMap::new(),
             textures: HashMap::new(),
             time_diff: Duration::from_secs(0),
@@ -83,8 +84,8 @@ impl UnsafeEngine {
         }
     }
 
-    pub fn command(&mut self, command: Command) {
-        self.commands.push(command)
+    pub fn command(&self, command: Command) {
+        self.commands.borrow_mut().push(command)
     }
 
     pub fn add_mesh<Name: Into<String>>(&mut self, name: Name, mesh: Mesh) {
@@ -126,9 +127,13 @@ impl UnsafeEngine {
         self.time_diff.as_secs_f32()
     }
 
+    pub fn get_ctx(&self) -> &egui::Context {
+        self.egui.get_egui_ctx()
+    }
+
     pub fn draw_loop<F>(&mut self, mut closure: F)
     where
-        F: FnMut(&mut UnsafeEngine, Vec<EventType>),
+        F: FnMut(&UnsafeEngine, Vec<EventType>),
     {
         while !self.window.should_close() {
             let time = SystemTime::now();
@@ -152,22 +157,18 @@ impl UnsafeEngine {
                 .collect();
 
             self.egui.begin_frame(&self.window, &mut self.glfw);
+
             closure(self, events);
 
             self.clear_background();
 
             let commands = std::mem::take(&mut self.commands);
             commands
+                .into_inner()
                 .into_iter()
                 .for_each(|command| command.interpret(self));
 
             self.update();
-
-            egui::SidePanel::left("bebra").resizable(true).show(self.egui.get_egui_ctx(), |ui| {
-                self.get_objects().iter().enumerate().for_each(|(idx, _)| {
-                    ui.label(format!("{idx}"));
-                })
-            });
 
             let (width, height) = self.window.get_framebuffer_size();
             self.egui.end_frame((width as _, height as _));

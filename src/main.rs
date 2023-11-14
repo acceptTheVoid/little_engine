@@ -1,12 +1,10 @@
 use engine_math::{Vector2, Vector3, Vector4};
-use glfw::Key;
 use unsafe_engine::engine::UnsafeEngine;
 use unsafe_engine::object::{components::Transform, Object, ObjectConstructor};
 use unsafe_engine::wrappers::{
     mesh::{Mesh, Vertex},
     shader::ShaderSource,
     textures::Texture2D,
-    types::EventType,
 };
 use unsafe_engine::Command;
 
@@ -37,41 +35,28 @@ fn main() {
     engine.set_background_color(Vector4::new(0., 0.1, 0.2, 1.));
 
     let mut i = 0;
-    engine.draw_loop(|engine, events| {
-        // let ctx = engine.get_egui();
+    engine.draw_loop(|engine, _| {
+        let ctx = engine.get_ctx();
 
-        // egui::SidePanel::left("glush").show(ctx, |ui| {
-        //     if ui.button("add obj").clicked() {
-        //         engine.command(Command::AddObject(
-        //             Object::new()
-        //                 .set_mesh_name("cube")
-        //                 .set_texture_name("texture1")
-        //                 .set_transform(Transform {
-        //                     pos: positions[i % positions.len()],
-        //                     ..Default::default()
-        //                 }),
-        //         ));
-        //         i += 1;
-        //     }
-        // });
-
-        for e in events {
-            match e {
-                EventType::KeyPressed(Key::Space) => {
-                    engine.command(Command::AddObject(
-                        Object::new()
-                            .set_mesh_name("cube")
-                            .set_texture_name("texture1")
-                            .set_transform(Transform {
-                                pos: positions[i % positions.len()],
-                                ..Default::default()
-                            }),
-                    ));
-                    i += 1;
-                }
-                _ => (),
-            }
-        }
+        egui::SidePanel::left("glush").show(ctx, |ui| {
+            ui.with_layout(
+                egui::Layout::top_down_justified(egui::Align::Center),
+                |ui| {
+                    if ui.button("add obj").clicked() {
+                        engine.command(Command::AddObject(
+                            Object::new()
+                                .set_mesh_name("cube")
+                                .set_texture_name("texture1")
+                                .set_transform(Transform {
+                                    pos: positions[i % positions.len()],
+                                    ..Default::default()
+                                }),
+                        ));
+                        i += 1;
+                    }
+                },
+            );
+        });
 
         let len = engine.get_objects().len();
         for i in 0..len {
