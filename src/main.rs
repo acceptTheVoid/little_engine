@@ -37,8 +37,23 @@ fn main() {
     engine.set_background_color(Vector4::new(0., 0.1, 0.2, 1.));
 
     let mut i = 0;
-    engine.game_loop(|engine, events| {
-        engine.clear_background();
+    engine.draw_loop(|engine, events| {
+        // let ctx = engine.get_egui();
+
+        // egui::SidePanel::left("glush").show(ctx, |ui| {
+        //     if ui.button("add obj").clicked() {
+        //         engine.command(Command::AddObject(
+        //             Object::new()
+        //                 .set_mesh_name("cube")
+        //                 .set_texture_name("texture1")
+        //                 .set_transform(Transform {
+        //                     pos: positions[i % positions.len()],
+        //                     ..Default::default()
+        //                 }),
+        //         ));
+        //         i += 1;
+        //     }
+        // });
 
         for e in events {
             match e {

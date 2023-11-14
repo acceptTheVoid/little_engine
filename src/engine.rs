@@ -13,8 +13,9 @@ use crate::{
         types::Vec4,
     },
 };
+use egui_glfw::EguiBackend;
 use engine_math::{transform::homogeneous::perspective3, Matrix4};
-use glfw::{Action, Context, Glfw, Key, Window, WindowEvent};
+use glfw::{Action, Context, Glfw, Key, SwapInterval, Window, WindowEvent};
 
 use crate::wrappers::{
     shader::{Shader, ShaderSource},
@@ -36,6 +37,7 @@ pub struct UnsafeEngine {
     glfw: Glfw,
     time_diff: Duration,
     projection: Matrix4,
+    egui: EguiBackend,
 }
 
 impl UnsafeEngine {
@@ -48,11 +50,18 @@ impl UnsafeEngine {
 
         window.set_key_polling(true);
         window.set_cursor_pos_polling(true);
+        window.set_mouse_button_polling(true);
         window.set_framebuffer_size_polling(true);
+        window.set_scroll_polling(true);
+        window.set_char_polling(true);
         window.make_current();
         // window.set_cursor_mode(CursorMode::Disabled);
 
         let _gl = GL::init(&mut window);
+
+        glfw.set_swap_interval(SwapInterval::None);
+
+        let egui = EguiBackend::new(&mut window, &mut glfw);
 
         unsafe {
             gl::Enable(gl::DEPTH_TEST);
@@ -70,6 +79,7 @@ impl UnsafeEngine {
             textures: HashMap::new(),
             time_diff: Duration::from_secs(0),
             projection: perspective3(10000., 0.01, 800. / 600., 45.),
+            egui,
         }
     }
 
@@ -93,7 +103,7 @@ impl UnsafeEngine {
         }
     }
 
-    pub fn clear_background(&self) {
+    fn clear_background(&self) {
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
@@ -116,7 +126,7 @@ impl UnsafeEngine {
         self.time_diff.as_secs_f32()
     }
 
-    pub fn game_loop<F>(&mut self, mut closure: F)
+    pub fn draw_loop<F>(&mut self, mut closure: F)
     where
         F: FnMut(&mut UnsafeEngine, Vec<EventType>),
     {
@@ -141,7 +151,10 @@ impl UnsafeEngine {
                 })
                 .collect();
 
+            self.egui.begin_frame(&self.window, &mut self.glfw);
             closure(self, events);
+
+            self.clear_background();
 
             let commands = std::mem::take(&mut self.commands);
             commands
@@ -149,6 +162,15 @@ impl UnsafeEngine {
                 .for_each(|command| command.interpret(self));
 
             self.update();
+
+            egui::SidePanel::left("bebra").resizable(true).show(self.egui.get_egui_ctx(), |ui| {
+                self.get_objects().iter().enumerate().for_each(|(idx, _)| {
+                    ui.label(format!("{idx}"));
+                })
+            });
+
+            let (width, height) = self.window.get_framebuffer_size();
+            self.egui.end_frame((width as _, height as _));
 
             self.window.swap_buffers();
             self.glfw.poll_events();
@@ -180,7 +202,10 @@ impl UnsafeEngine {
     fn handle_events(&mut self) -> Vec<InnerEvent> {
         glfw::flush_messages(&self.reciever)
             .into_iter()
-            .map(|(_, event)| handle_window_event(event))
+            .map(|(_, event)| {
+                self.egui.handle_event(&event, &self.window);
+                handle_window_event(event)
+            })
             .collect()
     }
 }
