@@ -1,7 +1,7 @@
-use std::{f32::consts::PI, ffi::CString, fmt::Display, fs, io, mem, path::Path, ptr};
+use std::{ffi::CString, fmt::Display, fs, io, mem, path::Path, ptr};
 
 use engine_math::{
-    transform::homogeneous::{lookat3, perspective3, rotate3, scale3, translate3}, Vector3,
+    transform::homogeneous::{lookat3, rotate3, scale3, translate3}, Vector3, Matrix4,
 };
 use gl::types::GLint;
 
@@ -103,9 +103,7 @@ pub struct Shader {
 }
 
 impl Shader {
-    pub fn draw_associated(&self, objects: &[Object], meshes: &Meshes, textures: &Textures) {
-        let projection = perspective3(10000., 0.01, 800. / 600., PI / 4.);
-
+    pub fn draw_associated(&self, objects: &[Object], meshes: &Meshes, textures: &Textures, projection: Matrix4) {
         self.use_program();
         self.set_uniform("projection", Uniform::Matrix4(projection));
         objects

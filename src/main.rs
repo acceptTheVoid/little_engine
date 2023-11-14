@@ -10,47 +10,6 @@ use unsafe_engine::wrappers::{
 };
 
 fn main() {
-    let vertices = vec![
-        Vertex {
-            pos: Vector3::new(0.5, -0.5, -0.5),
-            tex: Vector2::new(1., 1.),
-        },
-        Vertex {
-            pos: Vector3::new(0.5, -0.5, 0.5),
-            tex: Vector2::new(1., 0.),
-        },
-        Vertex {
-            pos: Vector3::new(-0.5, -0.5, 0.5),
-            tex: Vector2::new(0., 0.),
-        },
-        Vertex {
-            pos: Vector3::new(-0.5, -0.5, -0.5),
-            tex: Vector2::new(0., 1.),
-        },
-        Vertex {
-            pos: Vector3::new(-0.5, 0.5, 0.5),
-            tex: Vector2::new(0., 0.),
-        },
-        Vertex {
-            pos: Vector3::new(0.5, 0.5, 0.5),
-            tex: Vector2::new(1., 0.),
-        },
-        Vertex {
-            pos: Vector3::new(0.5, 0.5, -0.5),
-            tex: Vector2::new(1., 1.),
-        },
-        Vertex {
-            pos: Vector3::new(-0.5, 0.5, -0.5),
-            tex: Vector2::new(0., 1.),
-        },
-    ];
-
-    let indices = vec![
-        0, 3, 2, 2, 0, 1, 1, 2, 5, 2, 4, 5, 0, 1, 6, 1, 5, 6, 3, 0, 7, 0, 6, 7, 2, 3, 4, 3, 7, 4,
-        5, 4, 6, 4, 7, 6,
-    ];
-    let mesh = Mesh::new(vertices, indices);
-
     let positions = [
         Vector3::new(0., 0., 0.),
         Vector3::new(2., 5., -15.),
@@ -71,29 +30,31 @@ fn main() {
             .unwrap();
 
     let mut engine = UnsafeEngine::new(shader);
-    engine.add_mesh("rectangle", mesh);
+    engine.add_mesh("cube", cube());
     engine.add_texture("texture1", texture);
 
     engine.set_background_color(Vector4::new(0., 0.1, 0.2, 1.));
 
     let mut i = 0;
-    engine.game_loop(|engine, e| {
+    engine.game_loop(|engine, events| {
         engine.clear_background();
 
-        match e {
-            EventType::KeyPressed(Key::Space) => {
-                engine.add_object(
-                    Object::new()
-                        .set_mesh_name("rectangle")
-                        .set_texture_name("texture1")
-                        .set_transform(Transform {
-                            pos: positions[i % positions.len()],
-                            ..Default::default()
-                        }),
-                );
-                i += 1;
+        for e in events {
+            match e {
+                EventType::KeyPressed(Key::Space) => {
+                    engine.add_object(
+                        Object::new()
+                            .set_mesh_name("cube")
+                            .set_texture_name("texture1")
+                            .set_transform(Transform {
+                                pos: positions[i % positions.len()],
+                                ..Default::default()
+                            }),
+                    );
+                    i += 1;
+                }
+                _ => (),
             }
-            _ => (),
         }
 
         let len = engine.get_objects().len();
@@ -117,21 +78,169 @@ fn main() {
             );
         }
 
-        // for (idx, obj) in engine.get_objects().iter().enumerate() {
-        //     let mut pos = obj.transform().pos;
-        //     pos.y += engine.delta_time();
-        //     let transform = Transform {
-        //         pos,
-        //         ..obj.transform().clone()
-        //     };
-        //     engine.change_object(
-        //         idx,
-        //         ObjectConstructor::from(obj.clone()).set_transform(transform),
-        //     );
-        // }
-
         engine.draw_all();
     });
 }
 
+fn cube() -> Mesh {
+    let vertices = vec![
+        // Bottom
+        Vertex {
+            pos: Vector3::new(-0.5, -0.5, -0.5),
+            tex: Vector2::new(0., 0.),
+        },
+        Vertex {
+            pos: Vector3::new(0.5, -0.5, -0.5),
+            tex: Vector2::new(1., 0.),
+        },
+        Vertex {
+            pos: Vector3::new(0.5, 0.5, -0.5),
+            tex: Vector2::new(1., 1.),
+        },
+        Vertex {
+            pos: Vector3::new(0.5, 0.5, -0.5),
+            tex: Vector2::new(1., 1.),
+        },
+        Vertex {
+            pos: Vector3::new(-0.5, 0.5, -0.5),
+            tex: Vector2::new(0., 1.),
+        },
+        Vertex {
+            pos: Vector3::new(-0.5, -0.5, -0.5),
+            tex: Vector2::new(0., 0.),
+        },
 
+        // ------
+        Vertex {
+            pos: Vector3::new(-0.5, -0.5, 0.5),
+            tex: Vector2::new(0., 0.),
+        },
+        Vertex {
+            pos: Vector3::new(0.5, -0.5, 0.5),
+            tex: Vector2::new(1., 0.),
+        },
+        Vertex {
+            pos: Vector3::new(0.5, 0.5, 0.5),
+            tex: Vector2::new(1., 1.),
+        },
+        Vertex {
+            pos: Vector3::new(0.5, 0.5, 0.5),
+            tex: Vector2::new(1., 1.),
+        },
+        Vertex {
+            pos: Vector3::new(-0.5, 0.5, 0.5),
+            tex: Vector2::new(0., 1.),
+        },
+        Vertex {
+            pos: Vector3::new(-0.5, -0.5, 0.5),
+            tex: Vector2::new(0., 0.),
+        },
+
+        // ------
+        Vertex {
+            pos: Vector3::new(-0.5, 0.5, 0.5),
+            tex: Vector2::new(1., 0.),
+        },
+        Vertex {
+            pos: Vector3::new(-0.5, 0.5, -0.5),
+            tex: Vector2::new(1., 1.),
+        },
+        Vertex {
+            pos: Vector3::new(-0.5, -0.5, -0.5),
+            tex: Vector2::new(0., 1.),
+        },
+        Vertex {
+            pos: Vector3::new(-0.5, -0.5, -0.5),
+            tex: Vector2::new(0., 1.),
+        },
+        Vertex {
+            pos: Vector3::new(-0.5, -0.5, 0.5),
+            tex: Vector2::new(0., 0.),
+        },
+        Vertex {
+            pos: Vector3::new(-0.5, 0.5, 0.5),
+            tex: Vector2::new(1., 0.),
+        },
+
+        // ------
+        Vertex {
+            pos: Vector3::new(0.5, 0.5, 0.5),
+            tex: Vector2::new(1., 0.),
+        },
+        Vertex {
+            pos: Vector3::new(0.5, 0.5, -0.5),
+            tex: Vector2::new(1., 1.),
+        },
+        Vertex {
+            pos: Vector3::new(0.5, -0.5, -0.5),
+            tex: Vector2::new(0., 1.),
+        },
+        Vertex {
+            pos: Vector3::new(0.5, -0.5, -0.5),
+            tex: Vector2::new(0., 1.),
+        },
+        Vertex {
+            pos: Vector3::new(0.5, -0.5, 0.5),
+            tex: Vector2::new(0., 0.),
+        },
+        Vertex {
+            pos: Vector3::new(0.5, 0.5, 0.5),
+            tex: Vector2::new(1., 0.),
+        },
+
+        // ------
+        Vertex {
+            pos: Vector3::new(-0.5, -0.5, -0.5),
+            tex: Vector2::new(0., 1.),
+        },
+        Vertex {
+            pos: Vector3::new(0.5, -0.5, -0.5),
+            tex: Vector2::new(1., 1.),
+        },
+        Vertex {
+            pos: Vector3::new(0.5, -0.5, 0.5),
+            tex: Vector2::new(1., 0.),
+        },
+        Vertex {
+            pos: Vector3::new(0.5, -0.5, 0.5),
+            tex: Vector2::new(1., 0.),
+        },
+        Vertex {
+            pos: Vector3::new(-0.5, -0.5, 0.5),
+            tex: Vector2::new(0., 0.),
+        },
+        Vertex {
+            pos: Vector3::new(-0.5, -0.5, -0.5),
+            tex: Vector2::new(0., 1.),
+        },
+
+        // ------
+        Vertex {
+            pos: Vector3::new(-0.5, 0.5, -0.5),
+            tex: Vector2::new(0., 1.),
+        },
+        Vertex {
+            pos: Vector3::new(0.5, 0.5, -0.5),
+            tex: Vector2::new(1., 1.),
+        },
+        Vertex {
+            pos: Vector3::new(0.5, 0.5, 0.5),
+            tex: Vector2::new(1., 0.),
+        },
+        Vertex {
+            pos: Vector3::new(0.5, 0.5, 0.5),
+            tex: Vector2::new(1., 0.),
+        },
+        Vertex {
+            pos: Vector3::new(-0.5, 0.5, 0.5),
+            tex: Vector2::new(0., 0.),
+        },
+        Vertex {
+            pos: Vector3::new(-0.5, 0.5, -0.5),
+            tex: Vector2::new(0., 1.),
+        },
+    ];
+
+    let indices = (0..36).collect();
+    Mesh::new(vertices, indices)
+}

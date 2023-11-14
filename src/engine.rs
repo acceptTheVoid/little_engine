@@ -14,6 +14,7 @@ use crate::{
         types::Vec4,
     },
 };
+use engine_math::{Matrix4, transform::homogeneous::perspective3};
 use glfw::{Action, Context, Glfw, Key, Window, WindowEvent};
 
 use crate::wrappers::{
@@ -34,6 +35,7 @@ pub struct UnsafeEngine {
     reciever: Receiver<(f64, WindowEvent)>,
     glfw: Glfw,
     time_diff: Duration,
+    projection: Matrix4,
 }
 
 impl UnsafeEngine {
@@ -66,6 +68,7 @@ impl UnsafeEngine {
             meshes: HashMap::new(),
             textures: HashMap::new(),
             time_diff: Duration::from_secs(0),
+            projection: perspective3(10000., 0.01, 800. / 600., 45.),
         }
     }
 
@@ -106,7 +109,7 @@ impl UnsafeEngine {
 
     pub fn draw_all(&self) {
         self.shader
-            .draw_associated(&self.objects.borrow(), &self.meshes, &self.textures);
+            .draw_associated(&self.objects.borrow(), &self.meshes, &self.textures, self.projection);
     }
 
     pub fn delta_time(&self) -> f32 {
@@ -115,21 +118,26 @@ impl UnsafeEngine {
 
     pub fn game_loop<F>(&mut self, mut closure: F)
     where
-        F: FnMut(&UnsafeEngine, EventType),
+        F: FnMut(&UnsafeEngine, &[EventType]),
     {
         while !self.window.should_close() {
             let time = SystemTime::now();
 
-            for e in self.handle_events() {
+            let events: Vec<_> = self.handle_events().into_iter().filter_map(|e| {
                 match e {
-                    InnerEvent::IngameEvent(e) => closure(self, e),
+                    InnerEvent::IngameEvent(e) => return Some(e),
                     InnerEvent::Close => self.window.set_should_close(true),
-                    InnerEvent::Resize(w, h) => unsafe { gl::Viewport(0, 0, w, h) },
+                    InnerEvent::Resize(w, h) => unsafe {
+                        self.projection = perspective3(10000.0, 0.01, w as f32 / h as f32, 45.);
+                        gl::Viewport(0, 0, w, h) 
+                    },
                     _ => (),
                 }
-            }
 
-            closure(self, EventType::None);
+                None
+            }).collect();
+
+            closure(self, &events);
             self.window.swap_buffers();
             self.glfw.poll_events();
 
