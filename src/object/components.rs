@@ -8,7 +8,6 @@ use crate::wrappers::{
 
 #[derive(Debug, Clone)]
 pub struct Components {
-    pub transform: Transform,
     pub renderer: Option<Renderer>,
 }
 

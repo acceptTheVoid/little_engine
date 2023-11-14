@@ -1,5 +1,4 @@
 use std::{
-    cell::{Ref, RefCell},
     collections::HashMap,
     sync::mpsc::Receiver,
     time::{Duration, SystemTime},
@@ -14,7 +13,7 @@ use crate::{
         types::Vec4,
     },
 };
-use engine_math::{Matrix4, transform::homogeneous::perspective3};
+use engine_math::{transform::homogeneous::perspective3, Matrix4};
 use glfw::{Action, Context, Glfw, Key, Window, WindowEvent};
 
 use crate::wrappers::{
@@ -27,7 +26,8 @@ pub type Textures = HashMap<String, Texture2D>;
 
 pub struct UnsafeEngine {
     shader: Shader,
-    objects: RefCell<Vec<Object>>,
+    objects: Vec<Object>,
+    commands: Vec<Command>,
     meshes: Meshes,
     textures: Textures,
     _gl: GL,
@@ -64,12 +64,17 @@ impl UnsafeEngine {
             window,
             reciever,
             glfw,
-            objects: RefCell::new(vec![]),
+            objects: vec![],
+            commands: vec![],
             meshes: HashMap::new(),
             textures: HashMap::new(),
             time_diff: Duration::from_secs(0),
             projection: perspective3(10000., 0.01, 800. / 600., 45.),
         }
+    }
+
+    pub fn command(&mut self, command: Command) {
+        self.commands.push(command)
     }
 
     pub fn add_mesh<Name: Into<String>>(&mut self, name: Name, mesh: Mesh) {
@@ -94,22 +99,17 @@ impl UnsafeEngine {
         }
     }
 
-    pub fn add_object(&self, obj: ObjectConstructor) {
+    fn add_object(&mut self, obj: ObjectConstructor) {
         let obj = obj.construct(&self.shader);
-        self.objects.borrow_mut().push(obj)
+        self.objects.push(obj)
     }
 
-    pub fn get_objects(&self) -> Ref<'_, Vec<Object>> {
-        self.objects.borrow()
+    pub fn get_objects(&self) -> &[Object] {
+        &self.objects
     }
 
-    pub fn change_object(&self, id: usize, object: ObjectConstructor) {
-        self.objects.borrow_mut()[id] = object.construct(&self.shader);
-    }
-
-    pub fn draw_all(&self) {
-        self.shader
-            .draw_associated(&self.objects.borrow(), &self.meshes, &self.textures, self.projection);
+    fn change_object(&mut self, id: usize, object: ObjectConstructor) {
+        self.objects[id] = object.construct(&self.shader);
     }
 
     pub fn delta_time(&self) -> f32 {
@@ -118,26 +118,38 @@ impl UnsafeEngine {
 
     pub fn game_loop<F>(&mut self, mut closure: F)
     where
-        F: FnMut(&UnsafeEngine, &[EventType]),
+        F: FnMut(&mut UnsafeEngine, Vec<EventType>),
     {
         while !self.window.should_close() {
             let time = SystemTime::now();
 
-            let events: Vec<_> = self.handle_events().into_iter().filter_map(|e| {
-                match e {
-                    InnerEvent::IngameEvent(e) => return Some(e),
-                    InnerEvent::Close => self.window.set_should_close(true),
-                    InnerEvent::Resize(w, h) => unsafe {
-                        self.projection = perspective3(10000.0, 0.01, w as f32 / h as f32, 45.);
-                        gl::Viewport(0, 0, w, h) 
-                    },
-                    _ => (),
-                }
+            let events: Vec<_> = self
+                .handle_events()
+                .into_iter()
+                .filter_map(|e| {
+                    match e {
+                        InnerEvent::IngameEvent(e) => return Some(e),
+                        InnerEvent::Close => self.window.set_should_close(true),
+                        InnerEvent::Resize(w, h) => unsafe {
+                            self.projection = perspective3(10000.0, 0.01, w as f32 / h as f32, 45.);
+                            gl::Viewport(0, 0, w, h)
+                        },
+                        _ => (),
+                    }
 
-                None
-            }).collect();
+                    None
+                })
+                .collect();
 
-            closure(self, &events);
+            closure(self, events);
+
+            let commands = std::mem::take(&mut self.commands);
+            commands
+                .into_iter()
+                .for_each(|command| command.interpret(self));
+
+            self.update();
+
             self.window.swap_buffers();
             self.glfw.poll_events();
 
@@ -148,6 +160,21 @@ impl UnsafeEngine {
 
     pub fn access_shader(&self) -> &Shader {
         &self.shader
+    }
+
+    fn update(&self) {
+        self.objects
+            .iter()
+            .filter(|obj| obj.is_enabled())
+            .for_each(|obj| {
+                let transform = obj.transform();
+                if let Some(renderer) = obj.renderer() {
+                    let (mesh, texture) = renderer.request();
+                    let mesh = self.meshes.get(mesh).unwrap();
+                    let texture = texture.map(|name| self.textures.get(name)).flatten();
+                    self.shader.draw(transform, mesh, texture, self.projection);
+                }
+            });
     }
 
     fn handle_events(&mut self) -> Vec<InnerEvent> {
@@ -172,5 +199,20 @@ fn handle_window_event(event: glfw::WindowEvent) -> InnerEvent {
         }
         glfw::WindowEvent::FramebufferSize(width, height) => InnerEvent::Resize(width, height),
         _ => InnerEvent::EventsClear,
+    }
+}
+
+#[derive(Debug)]
+pub enum Command {
+    AddObject(ObjectConstructor),
+    ChangeObject(usize, ObjectConstructor),
+}
+
+impl Command {
+    fn interpret(self, engine: &mut UnsafeEngine) {
+        match self {
+            Self::AddObject(obj) => engine.add_object(obj),
+            Self::ChangeObject(idx, obj) => engine.change_object(idx, obj),
+        }
     }
 }

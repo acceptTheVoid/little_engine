@@ -6,8 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+egui = "0.23.0"
+egui_glfw = { branch = "v0.6.0-release", git = "https://github.com/ishbosamiya/egui_glfw.git" }
 engine-math = { git = "https://github.com/kopytlyanka/engine-math.git" }
 gl = "0.14.0"
 glfw = "0.53.0"
 image = "0.24.7"
-imgui-opengl-renderer = "0.12.1"

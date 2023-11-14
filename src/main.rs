@@ -1,6 +1,6 @@
-use unsafe_engine::engine::UnsafeEngine;
 use engine_math::{Vector2, Vector3, Vector4};
 use glfw::Key;
+use unsafe_engine::engine::UnsafeEngine;
 use unsafe_engine::object::{components::Transform, Object, ObjectConstructor};
 use unsafe_engine::wrappers::{
     mesh::{Mesh, Vertex},
@@ -8,6 +8,7 @@ use unsafe_engine::wrappers::{
     textures::Texture2D,
     types::EventType,
 };
+use unsafe_engine::Command;
 
 fn main() {
     let positions = [
@@ -42,7 +43,7 @@ fn main() {
         for e in events {
             match e {
                 EventType::KeyPressed(Key::Space) => {
-                    engine.add_object(
+                    engine.command(Command::AddObject(
                         Object::new()
                             .set_mesh_name("cube")
                             .set_texture_name("texture1")
@@ -50,7 +51,7 @@ fn main() {
                                 pos: positions[i % positions.len()],
                                 ..Default::default()
                             }),
-                    );
+                    ));
                     i += 1;
                 }
                 _ => (),
@@ -72,19 +73,17 @@ fn main() {
                 rotation,
                 ..obj.transform().clone()
             };
-            engine.change_object(
+
+            engine.command(Command::ChangeObject(
                 i,
                 ObjectConstructor::from(obj.clone()).set_transform(transform),
-            );
+            ));
         }
-
-        engine.draw_all();
     });
 }
 
 fn cube() -> Mesh {
     let vertices = vec![
-        // Bottom
         Vertex {
             pos: Vector3::new(-0.5, -0.5, -0.5),
             tex: Vector2::new(0., 0.),
@@ -109,7 +108,6 @@ fn cube() -> Mesh {
             pos: Vector3::new(-0.5, -0.5, -0.5),
             tex: Vector2::new(0., 0.),
         },
-
         // ------
         Vertex {
             pos: Vector3::new(-0.5, -0.5, 0.5),
@@ -135,7 +133,6 @@ fn cube() -> Mesh {
             pos: Vector3::new(-0.5, -0.5, 0.5),
             tex: Vector2::new(0., 0.),
         },
-
         // ------
         Vertex {
             pos: Vector3::new(-0.5, 0.5, 0.5),
@@ -161,7 +158,6 @@ fn cube() -> Mesh {
             pos: Vector3::new(-0.5, 0.5, 0.5),
             tex: Vector2::new(1., 0.),
         },
-
         // ------
         Vertex {
             pos: Vector3::new(0.5, 0.5, 0.5),
@@ -187,7 +183,6 @@ fn cube() -> Mesh {
             pos: Vector3::new(0.5, 0.5, 0.5),
             tex: Vector2::new(1., 0.),
         },
-
         // ------
         Vertex {
             pos: Vector3::new(-0.5, -0.5, -0.5),
@@ -213,7 +208,6 @@ fn cube() -> Mesh {
             pos: Vector3::new(-0.5, -0.5, -0.5),
             tex: Vector2::new(0., 1.),
         },
-
         // ------
         Vertex {
             pos: Vector3::new(-0.5, 0.5, -0.5),

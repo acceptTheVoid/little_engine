@@ -1,13 +1,16 @@
 use std::{ffi::CString, fmt::Display, fs, io, mem, path::Path, ptr};
 
 use engine_math::{
-    transform::homogeneous::{lookat3, rotate3, scale3, translate3}, Vector3, Matrix4,
+    transform::homogeneous::{lookat3, rotate3, scale3, translate3},
+    Matrix4, Vector, Vector3,
 };
 use gl::types::GLint;
 
 use crate::{
-    engine::{Meshes, Textures},
-    object::Object,
+    mesh::{BoundStaticMesh, Draw},
+    object::components::Transform,
+    textures::Texture2D,
+    types::TextureUnit,
     wrappers::to_ptr,
 };
 
@@ -103,37 +106,30 @@ pub struct Shader {
 }
 
 impl Shader {
-    pub fn draw_associated(&self, objects: &[Object], meshes: &Meshes, textures: &Textures, projection: Matrix4) {
+    pub fn draw(
+        &self,
+        transform: &Transform,
+        mesh: &BoundStaticMesh,
+        texture: Option<&Texture2D>,
+        projection: Matrix4,
+    ) {
         self.use_program();
         self.set_uniform("projection", Uniform::Matrix4(projection));
-        objects
-            .iter()
-            .filter(|obj| obj.is_enabled())
-            .filter_map(|obj| {
-                if let Some(r) = obj.renderer() {
-                    Some((obj.transform(), r))
-                } else {
-                    None
-                }
-            })
-            .for_each(|(t, r)| {
-                let (mesh_name, texture_name) = r.request();
-                let mesh = meshes.get(mesh_name).unwrap();
-                let texture = texture_name.map(|n| textures.get(n).unwrap());
 
-                let Vector3 { x, y, z } = t.rotation;
-                let model = translate3(t.pos) * scale3(t.scale) * rotate3(x, y, z);
-                let view = lookat3(
-                    Vector3::new(0., 0., 3.),
-                    Vector3::from(0.),
-                    Vector3::new(0., 1., 0.),
-                );
+        let Vector3 { x, y, z } = transform.rotation;
+        let model = translate3(transform.pos) * scale3(transform.scale) * rotate3(x, y, z);
+        let view = lookat3(
+            Vector3::new(0., 0., 3.),
+            Vector3::zero(),
+            Vector3::new(0., 1., 0.),
+        );
 
-                self.set_uniform("model", Uniform::Matrix4(model));
-                self.set_uniform("view", Uniform::Matrix4(view));
+        self.set_uniform("model", Uniform::Matrix4(model));
+        self.set_uniform("view", Uniform::Matrix4(view));
 
-                r.draw(mesh, texture);
-            });
+        texture.map(|t| t.bind(TextureUnit::Texture0));
+
+        mesh.draw();
     }
 
     fn use_program(&self) {

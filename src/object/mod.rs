@@ -6,6 +6,7 @@ pub mod components;
 
 #[derive(Debug, Clone)]
 pub struct Object {
+    transform: Transform,
     components: Components,
 }
 
@@ -21,7 +22,7 @@ impl Object {
     }
 
     pub fn transform(&self) -> &Transform {
-        &self.components.transform
+        &self.transform
     }
 
     pub fn renderer(&self) -> Option<&Renderer> {
@@ -29,7 +30,7 @@ impl Object {
     }
 
     pub fn is_enabled(&self) -> bool {
-        self.components.transform.enabled
+        self.transform.enabled
     }
 }
 
@@ -70,10 +71,8 @@ impl ObjectConstructor {
         };
 
         Object {
-            components: Components {
-                transform,
-                renderer,
-            },
+            transform,
+            components: Components { renderer },
         }
     }
 }
